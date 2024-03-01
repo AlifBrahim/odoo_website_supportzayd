@@ -1185,13 +1185,14 @@ class WebsiteSupportTicket(models.Model):
 
         # Send FCM notification
         if new_id.user_id.fcm_token_id:
-            fcm_tokens = new_id.user_id.fcm_token_id
+            # Retrieve all tokens for the user
+            fcm_tokens = self.env['fcm.token'].search([('user_id', '=', new_id.user_id.id)])
             for token in fcm_tokens:
                 print('Sending notification to FCM token:', token.token)
 
                 # Load the service account key JSON file.
                 creds = ServiceAccountCredentials.from_json_keyfile_name(
-                    r'C:\Users\DELL\odoo11\odoo\addons\website_supportzayd\sigma-helpdesk-firebase-adminsdk-3ayru-601327b0dd.json',
+                    r'C:\Users\DELL\odoo11\addons\website_supportzayd\sigma-helpdesk-firebase-adminsdk-3ayru-601327b0dd.json',
                     ['https://www.googleapis.com/auth/firebase.messaging']
                 )
 
@@ -1215,11 +1216,15 @@ class WebsiteSupportTicket(models.Model):
                         },
                     },
                 }
-            response = requests.post(url, headers=headers, data=json.dumps(data))
-            if response.status_code == 200:
-                print('Notification sent successfully')
-            else:
-                print('Notification not sent. Response:', response.content)
+                try:
+                    response = requests.post(url, headers=headers, data=json.dumps(data))
+                    if response.status_code == 200:
+                        print('Notification sent successfully to:', token.token)
+                    else:
+                        print('Notification not sent. Response:', response.content)
+                except Exception as e:
+                    print('Error sending notification to:', token.token, 'Error:', e)
+            print('Retrieved FCM tokens for user:', new_id.user_id.id, 'Tokens:', [t.token for t in fcm_tokens])
 
         return new_id
 
